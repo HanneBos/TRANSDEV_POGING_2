@@ -114,4 +114,25 @@ st.markdown(
 col1, col2, col3 = st.columns([2,1,2])
 with col2:
     if st.button("START"):
-        st.switch_page("pages/1_Feasibility_Checker.py")
+        # Check if pages directory exists
+        pages_dir = os.path.join(current_dir, "pages")
+        feasibility_page = os.path.join(pages_dir, "1_Feasibility_Checker.py")
+        
+        if os.path.exists(feasibility_page):
+            st.switch_page("pages/1_Feasibility_Checker.py")
+        else:
+            # Debug information for cloud deployment
+            st.error("Pages directory not found. Please check your repository structure.")
+            st.write("**Debug Info:**")
+            st.write(f"Current directory: {current_dir}")
+            st.write(f"Looking for: {feasibility_page}")
+            st.write(f"Pages directory exists: {os.path.exists(pages_dir)}")
+            if os.path.exists(pages_dir):
+                st.write(f"Files in pages/: {os.listdir(pages_dir)}")
+            st.write(f"Files in root: {[f for f in os.listdir(current_dir) if f.endswith('.py')]}")
+            
+            # Alternative: Try direct navigation if pages are in root
+            alt_page = os.path.join(current_dir, "1_Feasibility_Checker.py")
+            if os.path.exists(alt_page):
+                st.info("Found page in root directory, switching...")
+                st.switch_page("1_Feasibility_Checker.py")
