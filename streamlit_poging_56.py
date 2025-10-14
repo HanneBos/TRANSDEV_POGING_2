@@ -114,25 +114,38 @@ st.markdown(
 col1, col2, col3 = st.columns([2,1,2])
 with col2:
     if st.button("START"):
-        # Check if pages directory exists
-        pages_dir = os.path.join(current_dir, "pages")
-        feasibility_page = os.path.join(pages_dir, "1_Feasibility_Checker.py")
-        
-        if os.path.exists(feasibility_page):
+        try:
+            # Try to switch to the feasibility checker page
             st.switch_page("pages/1_Feasibility_Checker.py")
-        else:
-            # Debug information for cloud deployment
-            st.error("Pages directory not found. Please check your repository structure.")
-            st.write("**Debug Info:**")
-            st.write(f"Current directory: {current_dir}")
-            st.write(f"Looking for: {feasibility_page}")
-            st.write(f"Pages directory exists: {os.path.exists(pages_dir)}")
-            if os.path.exists(pages_dir):
-                st.write(f"Files in pages/: {os.listdir(pages_dir)}")
-            st.write(f"Files in root: {[f for f in os.listdir(current_dir) if f.endswith('.py')]}")
+        except Exception as e:
+            st.error(f"Error loading page: {str(e)}")
+            st.write("**Troubleshooting Info:**")
             
-            # Alternative: Try direct navigation if pages are in root
-            alt_page = os.path.join(current_dir, "1_Feasibility_Checker.py")
-            if os.path.exists(alt_page):
-                st.info("Found page in root directory, switching...")
-                st.switch_page("1_Feasibility_Checker.py")
+            # Check if pages directory exists
+            pages_dir = os.path.join(current_dir, "pages")
+            st.write(f"Pages directory exists: {os.path.exists(pages_dir)}")
+            
+            if os.path.exists(pages_dir):
+                try:
+                    pages_files = os.listdir(pages_dir)
+                    st.write(f"Files in pages/: {pages_files}")
+                except Exception:
+                    st.write("Cannot read pages directory")
+            
+            # Show current directory contents
+            try:
+                root_files = [f for f in os.listdir(current_dir) if f.endswith('.py')]
+                st.write(f"Python files in root: {root_files}")
+            except Exception:
+                st.write("Cannot read root directory")
+            
+            st.write("**Please check:**")
+            st.write("1. All page files are uploaded to GitHub")
+            st.write("2. Page files have relative paths (not Windows C:\\ paths)")
+            st.write("3. All required modules are available")
+            
+            # Manual navigation option
+            st.write("---")
+            st.write("**Manual Navigation:**")
+            if st.button("🔄 Try Alternative Navigation"):
+                st.rerun()
