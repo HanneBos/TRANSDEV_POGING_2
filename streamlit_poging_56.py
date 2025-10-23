@@ -113,7 +113,7 @@ st.markdown(
 
 col1, col2, col3 = st.columns([2,1,2])
 with col2:
-    if st.button("START"):
+    if st.button("**START**"):
         try:
             # Try to switch to the feasibility checker page
             st.switch_page("pages/1_Feasibility_Checker.py")
@@ -149,3 +149,4 @@ with col2:
             st.write("**Manual Navigation:**")
             if st.button("🔄 Try Alternative Navigation"):
                 st.rerun()
+
