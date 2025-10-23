@@ -167,16 +167,12 @@ def compute_efficiency(service_min: int | None, total_min: int | None) -> float 
 
 # UI Setup
 # Use relative paths for cloud deployment
-current_dir = os.path.dirname(os.path.dirname(__file__))  # Go up one level from pages/
-logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
-try:
-    add_logo(logo_path)
-except FileNotFoundError:
-    # Fallback: Display text logo
-    st.markdown("### 🚌 Transdev KPI Dashboard")
-
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Go up one level from pages/
 bg_path = os.path.join(current_dir, "bus_streamlit_proef4.png")
+logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
+
 set_bg(bg_path)
+add_logo(logo_path)
 
 st.markdown("""
     <style>
