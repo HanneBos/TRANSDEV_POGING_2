@@ -2,6 +2,7 @@ import streamlit as st
 import base64
 import pandas as pd
 import io
+import os
 from diagnostics_final_checker import run_diagnostics_final
 
 # Set page config
@@ -27,12 +28,24 @@ def set_bg(image_path):
                 border-radius: 5px !important;
                 margin-top: 5px !important;
             }}
+            /* Style reset button with same transparency as expander */
+            button[kind="secondary"] {{
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 5px !important;
+                color: #333 !important;
+            }}
+            button[kind="secondary"]:hover {{
+                background-color: rgba(255, 255, 255, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.5) !important;
+            }}
             </style>
             """,
             unsafe_allow_html=True
         )
     except FileNotFoundError:
-        # Fallback styling if images are not found
+        # Fallback styling if background image is not found
         st.markdown(
             """
             <style>
@@ -46,6 +59,18 @@ def set_bg(image_path):
                 padding: 15px !important;
                 border-radius: 5px !important;
                 margin-top: 5px !important;
+            }
+            /* Style reset button with same transparency as expander */
+            button[kind="secondary"] {
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 5px !important;
+                color: #333 !important;
+            }
+            button[kind="secondary"]:hover {
+                background-color: rgba(255, 255, 255, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.5) !important;
             }
             </style>
             """,
@@ -76,14 +101,14 @@ def add_logo(logo_path, width=250):
             unsafe_allow_html=True
         )
 
-# Use relative paths that work in cloud deployment
-import os
+# UI Setup
+# Use relative paths for cloud deployment
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Go up one level from pages/
-logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
-add_logo(logo_path)
-
 bg_path = os.path.join(current_dir, "bus_streamlit_proef4.png")
+logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
+
 set_bg(bg_path)
+add_logo(logo_path)
 
 st.markdown("""
     <style>
@@ -145,24 +170,50 @@ with st.expander("**How to use the feasibility checker**"):
     - **Validated schedule** = Your original plan, cleaned and sorted
     """)
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Bus Planning file</div>', unsafe_allow_html=True)
-    plan_file = st.file_uploader("", type=["xlsx"], key="plan")
-with col2:
-    st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Distance Matrix file</div>', unsafe_allow_html=True)
-    dist_file = st.file_uploader("", type=["xlsx"], key="dist")
-with col3:
-    st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Timetable file</div>', unsafe_allow_html=True)
-    tt_file = st.file_uploader("", type=["xlsx"], key="tt")
+# Reset button
+reset_col1, reset_col2, reset_col3 = st.columns([1, 1, 1])
+with reset_col2:
+    if st.button("**Reset Page**", type="secondary", help="Clear all uploaded files and results"):
+        # Clear session state for this page
+        for key in ['feasibility_result', 'feasibility_files_uploaded']:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
-if plan_file and dist_file and tt_file:
-    plan_df = pd.read_excel(plan_file)
-    dist_df = pd.read_excel(dist_file)
-    tt_df = pd.read_excel(tt_file)
+# Check if we have saved results
+show_results = st.session_state.get('feasibility_result') is not None
+files_uploaded = st.session_state.get('feasibility_files_uploaded', False)
 
-    result = run_diagnostics_final(plan_df, dist_df, tt_df)
+if not show_results:
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Bus Planning file</div>', unsafe_allow_html=True)
+        plan_file = st.file_uploader("", type=["xlsx"], key="plan")
+    with col2:
+        st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Distance Matrix file</div>', unsafe_allow_html=True)
+        dist_file = st.file_uploader("", type=["xlsx"], key="dist")
+    with col3:
+        st.markdown('<div style="font-size:1.2em;font-weight:bold;text-align:center;margin-bottom:0.1em;">Timetable file</div>', unsafe_allow_html=True)
+        tt_file = st.file_uploader("", type=["xlsx"], key="tt")
 
+    if plan_file and dist_file and tt_file:
+        with st.spinner("Running feasibility check..."):
+            plan_df = pd.read_excel(plan_file)
+            dist_df = pd.read_excel(dist_file)
+            tt_df = pd.read_excel(tt_file)
+
+            result = run_diagnostics_final(plan_df, dist_df, tt_df)
+            
+            # Save results to session state
+            st.session_state['feasibility_result'] = result
+            st.session_state['feasibility_files_uploaded'] = True
+            
+        st.rerun()
+    else:
+        st.info("Upload all required files to begin.")
+
+if show_results:
+    result = st.session_state['feasibility_result']
     rule_counts = result.get("rule_counts", pd.DataFrame())
     viol_df = result.get("violations", pd.DataFrame())
     soc_df = result.get("soc", pd.DataFrame())
@@ -221,8 +272,6 @@ if plan_file and dist_file and tt_file:
             file_name="validated_plan.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-else:
-    st.info("Upload all required files to begin.")
 
 # Footer
 st.markdown("---")
