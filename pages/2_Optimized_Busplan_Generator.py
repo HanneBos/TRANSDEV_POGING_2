@@ -33,6 +33,18 @@ def set_bg(image_path):
                 border-radius: 5px !important;
                 margin-top: 5px !important;
             }}
+            /* Style reset button with same transparency as expander */
+            button[kind="secondary"] {{
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 5px !important;
+                color: #333 !important;
+            }}
+            button[kind="secondary"]:hover {{
+                background-color: rgba(255, 255, 255, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.5) !important;
+            }}
             </style>
             """,
             unsafe_allow_html=True
@@ -57,6 +69,18 @@ def set_bg(image_path):
                 border-radius: 5px !important;
                 margin-top: 5px !important;
             }
+            /* Style reset button with same transparency as expander */
+            button[kind="secondary"] {
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 5px !important;
+                color: #333 !important;
+            }
+            button[kind="secondary"]:hover {
+                background-color: rgba(255, 255, 255, 0.85) !important;
+                border: 1px solid rgba(255, 255, 255, 0.5) !important;
+            }
             </style>
             """,
             unsafe_allow_html=True
@@ -80,16 +104,12 @@ def add_logo(logo_path, width=250):
 
 # UI Setup
 # Use relative paths for cloud deployment
-current_dir = os.path.dirname(os.path.dirname(__file__))  # Go up one level from pages/
-logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
-try:
-    add_logo(logo_path)
-except FileNotFoundError:
-    # Fallback: Display text logo
-    st.markdown("### 🚌 Transdev Bus Optimization")
-
+current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Go up one level from pages/
 bg_path = os.path.join(current_dir, "bus_streamlit_proef4.png")
+logo_path = os.path.join(current_dir, "transdev_logo_2018.png")
+
 set_bg(bg_path)
+add_logo(logo_path)
 
 st.markdown("""
     <style>
@@ -144,90 +164,123 @@ with st.expander("**How to use the optimization tool**"):
     - **Best Practice**: For complex plans, run Feasibility Checker first to understand specific problems
     """)
 
-# File upload
-uploaded_file = st.file_uploader("Upload Bus Planning Excel file", type=['xlsx', 'xls'])
+# Reset button
+reset_col1, reset_col2, reset_col3 = st.columns([1, 1, 1])
+with reset_col2:
+    if st.button("**Reset Page**", type="secondary", help="Clear uploaded file and optimization results"):
+        # Clear session state for this page
+        for key in ['optimizer_result', 'optimizer_original_df', 'optimizer_file_uploaded']:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 
-if uploaded_file is not None:
-    try:
-        # Read the uploaded file
-        df = pd.read_excel(uploaded_file)
-        
-        st.success(f"File uploaded successfully! Found {len(df)} rows.")
-        
-        # Show preview of uploaded data
-        with st.expander("Preview uploaded data"):
-            st.dataframe(df)
-        
-        # Optimization button
-        if st.button("Generate Optimized Busplan", type="primary"):
-            try:
-                # Progress placeholder
-                progress_placeholder = st.empty()
-                
-                # Progress callback function
-                def update_progress(message):
-                    progress_placeholder.text(message)
-                
-                with st.spinner("Optimizing busplan... This may take a few moments."):
-                    # Run optimization with progress callback
-                    optimized_df = optimize_busplan(df, progress_callback=update_progress)
-                
-                progress_placeholder.success("Optimization completed successfully!")
-                
-                # Show results summary
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("**Original Plan Rows**", len(df))
-                with col2:
-                    st.metric("**Optimized Plan Rows**", len(optimized_df))
-                
-                # Show preview of optimized data
-                with st.expander("Preview optimized busplan"):
-                    st.dataframe(optimized_df)
-                
-                # Prepare download
-                output = io.BytesIO()
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"BusPlanning_Optimized_{timestamp}.xlsx"
-                
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    # Write main optimized plan
-                    display_cols = [col for col in optimized_df.columns if not col.startswith('_')]
-                    optimized_df[display_cols].to_excel(writer, sheet_name='busplan_optimized', index=False)
-                    
-                    # Write technical details if available
-                    if any(col.startswith('_soc') for col in optimized_df.columns):
-                        optimized_df.to_excel(writer, sheet_name='technical_details', index=False)
-                
-                output.seek(0)
-                
-                # Download button
-                st.download_button(
-                    label="Download Optimized Busplan",
-                    data=output.getvalue(),
-                    file_name=filename,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                
-                # Show SoC summary if available
-                if "_soc_before" in optimized_df.columns and "_soc_after" in optimized_df.columns:
-                    soc_data = pd.concat([optimized_df["_soc_before"], optimized_df["_soc_after"]])
-                    soc_min = float(soc_data.min(skipna=True))
-                    soc_breaches = int(((optimized_df["_soc_before"] < SOC_FLOOR_KWH).sum() + 
-                                      (optimized_df["_soc_after"] < SOC_FLOOR_KWH).sum()))
-                    
-                    st.info(f" **SoC Summary:** Minimum SoC: {soc_min:.2f} kWh | SoC breaches: {soc_breaches}")
-                
-            except Exception as e:
-                st.error(f"Error during optimization: {str(e)}")
-                st.error("Please check your file format and try again.")
-                
-    except Exception as e:
-        st.error(f"Error reading file: {str(e)}")
-        st.error("Please make sure you uploaded a valid Excel file with the correct format.")
+# Check if we have saved results
+show_results = st.session_state.get('optimizer_result') is not None
+file_uploaded = st.session_state.get('optimizer_file_uploaded', False)
+original_df = st.session_state.get('optimizer_original_df')
 
-else:
-    st.info("Please upload a Bus Planning Excel file to get started.")
+if not show_results:
+    # File upload
+    uploaded_file = st.file_uploader("Upload Bus Planning Excel file", type=['xlsx', 'xls'])
+
+    if uploaded_file is not None:
+        try:
+            # Read the uploaded file
+            df = pd.read_excel(uploaded_file)
+            
+            st.success(f"File uploaded successfully! Found {len(df)} rows.")
+
+            # Save original dataframe to session_state
+            st.session_state['original_df'] = df.copy()
+            st.session_state['optimizer_original_df'] = df.copy()
+
+            # Show preview of uploaded data
+            with st.expander("**Preview uploaded data**"):
+                st.dataframe(df)
+            
+            # Optimization button
+            if st.button("Generate Optimized Busplan", type="primary"):
+                try:
+                    # Progress placeholder
+                    progress_placeholder = st.empty()
+                    
+                    # Progress callback function
+                    def update_progress(message):
+                        progress_placeholder.text(message)
+                    
+                    with st.spinner("Optimizing busplan... This may take a few moments."):
+                        # Run optimization with progress callback
+                        optimized_df = optimize_busplan(df, progress_callback=update_progress)
+                    
+                    progress_placeholder.success("Optimization completed successfully!")
+
+                    # Save results to session state
+                    st.session_state['optimized_df'] = optimized_df.copy()
+                    st.session_state['optimizer_result'] = optimized_df.copy()
+                    st.session_state['optimizer_file_uploaded'] = True
+                    
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Error during optimization: {str(e)}")
+                    st.error("Please check your file format and try again.")
+                    
+        except Exception as e:
+            st.error(f"Error reading file: {str(e)}")
+            st.error("Please make sure you uploaded a valid Excel file with the correct format.")
+
+    else:
+        st.info("Please upload a Bus Planning Excel file to get started.")
+
+if show_results:
+    optimized_df = st.session_state['optimizer_result']
+    original_df = st.session_state['optimizer_original_df']
+    
+    st.success("✅ Optimization completed successfully!")
+    
+    # Show results summary
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("**Original Plan Rows**", len(original_df))
+    with col2:
+        st.metric("**Optimized Plan Rows**", len(optimized_df))
+    
+    # Show preview of optimized data
+    with st.expander("**Preview optimized busplan**", expanded=True):
+        st.dataframe(optimized_df)
+    
+    # Prepare download
+    output = io.BytesIO()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"BusPlanning_Optimized_{timestamp}.xlsx"
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Write main optimized plan
+        display_cols = [col for col in optimized_df.columns if not col.startswith('_')]
+        optimized_df[display_cols].to_excel(writer, sheet_name='busplan_optimized', index=False)
+        
+        # Write technical details if available
+        if any(col.startswith('_soc') for col in optimized_df.columns):
+            optimized_df.to_excel(writer, sheet_name='technical_details', index=False)
+    
+    output.seek(0)
+    
+    # Download button
+    st.download_button(
+        label="Download Optimized Busplan",
+        data=output.getvalue(),
+        file_name=filename,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
+    # Show SoC summary if available
+    if "_soc_before" in optimized_df.columns and "_soc_after" in optimized_df.columns:
+        soc_data = pd.concat([optimized_df["_soc_before"], optimized_df["_soc_after"]])
+        soc_min = float(soc_data.min(skipna=True))
+        soc_breaches = int(((optimized_df["_soc_before"] < SOC_FLOOR_KWH).sum() + 
+                          (optimized_df["_soc_after"] < SOC_FLOOR_KWH).sum()))
+        
+        st.info(f" **SoC Summary:** Minimum SoC: {soc_min:.2f} kWh | SoC breaches: {soc_breaches}")
 
 # Footer
 st.markdown("---")
