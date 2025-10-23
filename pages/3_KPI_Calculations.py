@@ -20,6 +20,14 @@ def set_bg(image_path):
                 background-size: cover;
                 background-attachment: fixed;
             }}
+            /* Improve expander content readability only */
+            .stExpander [data-testid="stExpanderDetails"] {{
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                padding: 15px !important;
+                border-radius: 5px !important;
+                margin-top: 5px !important;
+            }}
             </style>
             """,
             unsafe_allow_html=True
@@ -31,6 +39,14 @@ def set_bg(image_path):
             <style>
             .stApp {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            /* Improve expander content readability only */
+            .stExpander [data-testid="stExpanderDetails"] {
+                background-color: rgba(255, 255, 255, 0.7) !important;
+                backdrop-filter: blur(5px) !important;
+                padding: 15px !important;
+                border-radius: 5px !important;
+                margin-top: 5px !important;
             }
             </style>
             """,
@@ -180,7 +196,7 @@ st.markdown("""
         white-space: nowrap;
         font-size: 3em;
         font-weight: bold;
-        text-align: left;
+        text-align: center;
         display: block;
         margin: 0 auto;
         color: #31333f;
@@ -192,10 +208,51 @@ st.markdown("""
         margin-bottom: 1.5em;
     }
     </style>
-    <div class='nowrap-title'>KPI's</div>
-        .
+    <div class='nowrap-title'>KPI Calculations</div>
+    <div class='subtitle'>
+        Compare key performance indicators between your original and optimized bus plans.
     </div>
 """, unsafe_allow_html=True)
+
+# Instructions
+with st.expander("**How to use the KPI dashboard**"):
+    st.markdown("""
+    ### About KPI Calculations:
+    This dashboard automatically compares key performance indicators (KPIs) between your original bus plan and the optimized version. The calculations are based on data from your uploaded files and optimization results.
+    
+    ### Available KPIs:
+    - **Material Trips**: Number of non-service trips (deadheading, positioning moves)
+    - **Idle Time**: Total minutes buses spend idle (not in service or charging)
+    - **Unique Buses**: Number of different buses required for the plan
+    - **Total Energy Consumed**: Sum of energy consumption across all activities (kWh)
+    - **Service Time (%)**: Percentage of total time spent on passenger service
+    
+    ### Understanding the Results:
+    - **Original**: KPIs calculated from your initial bus plan
+    - **Optimized**: KPIs calculated from the optimization results
+    - **Lower is better**: Material trips, idle time, energy consumption
+    - **Higher is better**: Service time percentage
+    - **Depends on needs**: Number of unique buses (fewer = more efficient, but may impact service)
+    
+    ### Data Requirements:
+    To see KPI calculations, you need to:
+    1. **Upload files** on the Feasibility Checker or Optimized Busplan Generator pages
+    2. **Complete processes** to generate both original and optimized data
+    3. **Navigate here** to view the comparative analysis
+    
+    ### Interpreting "N/A" Values:
+    - **Missing data**: Required columns not found in uploaded files
+    - **No optimization**: Optimized busplan not yet generated
+    - **Data format**: Issues with date/time or numeric data formatting
+    
+    ### Tips for Better KPIs:
+    - **Energy data**: Include energy consumption columns for accurate calculations
+    - **Time format**: Ensure start/end times are in HH:MM:SS format
+    - **Activity labels**: Use consistent activity naming (service, idle, material trip, etc.)
+    - **Bus identification**: Include clear bus number/ID columns
+    """)
+
+st.markdown('<div style="margin-bottom: 2em;"></div>', unsafe_allow_html=True)
 
 orig_df = st.session_state.get('original_df', None)
 opt_df = st.session_state.get('optimized_df', None)
