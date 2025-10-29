@@ -1889,14 +1889,23 @@ with st.expander("**How to use the optimization tool**"):
     4. **View Results**: Once complete, review the optimization results and metrics
     5. **Download**: Download your optimized busplan Excel file
     6. **Reset**: Use "Reset Page" button to start over with new files
-
+    
+    ### What you'll see after optimization:
+    - **Metrics Overview**: Original vs Optimized plan row counts, Minimum SoC, SoC Floor (30.0 kWh), and SoC Breaches
+    - **Optimized Busplan**: Complete optimized schedule in an expandable table view
+    - **Download Button**: Get your optimized busplan as an Excel file with timestamp
+    - **Violations**: List of any remaining issues found in the optimized plan
+    - **Suggestions**: Recommended improvements and optimization opportunities  
+    - **Added Rows**: New activities inserted during optimization (charging sessions, material trips)
+    - **Removed Rows**: Original activities that were modified or replaced during optimization
+    
     ### What the optimization does:
     - **Fixes Continuity**: Inserts material trips to connect disconnected bus activities
     - **Smart Charging**: Converts garage idle time into efficient charging sessions (≥15 min)
     - **Energy Management**: Ensures battery levels stay above 30 kWh throughout the day
     - **Station Optimization**: Upgrades station idle periods into garage charging loops when beneficial
     - **Data Validation**: Corrects timing issues, energy calculations, and activity classifications
-
+    
     ### File Requirements:
     **(Validated) Bus Planning file** should contain columns for:
     - Bus number/ID
@@ -1906,14 +1915,12 @@ with st.expander("**How to use the optimization tool**"):
     - Line information
     - Energy consumption data
     
-    ### Understanding the results:
-    - **Metrics Overview**: Original vs Optimized plan row counts, Minimum SoC, SoC Floor (30.0 kWh), and SoC Breaches
-    - **Optimized Busplan**: Complete optimized schedule in an expandable table view
-    - **Download Button**: Get your optimized busplan as an Excel file with timestamp
-    - **Violations**: List of any remaining issues found in the optimized plan
-    - **Suggestions**: Recommended improvements and optimization opportunities  
-    - **Added Rows**: New activities inserted during optimization (charging sessions, material trips)
-    - **Removed Rows**: Original activities that were modified or replaced during optimization
+    ### Interpreting Results:
+    - **Green metrics** indicate successful optimization
+    - **Violations** show remaining issues that need attention  
+    - **Suggestions** provide improvement opportunities
+    - **Added/Removed rows** show what changed during optimization
+    - Use the KPI Calculations page to analyze performance in detail
     """)
 
 # Reset button with better centering and transparency styling
@@ -2163,6 +2170,9 @@ if show_results:
         violations_df = result.get("violations", pd.DataFrame())
         suggestions_df = result.get("suggestions", pd.DataFrame())
         
+        # Store violations count in session_state for KPI page
+        st.session_state['amount_violations_optimized'] = len(violations_df) if not violations_df.empty else 0
+        
         if not violations_df.empty:
             st.markdown(f"### Violations <span style='font-size:0.8em; color:#555;'>({len(violations_df)} found)</span>", unsafe_allow_html=True)
             with st.expander("**View violations**", expanded=False):
@@ -2196,5 +2206,3 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
-
-
