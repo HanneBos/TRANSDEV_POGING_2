@@ -1890,7 +1890,7 @@ with st.expander("**How to use the optimization tool**"):
     5. **Download**: Download your optimized busplan Excel file
     6. **Reset**: Use "Reset Page" button to start over with new files
 
-    ⚠️ **Important**: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
+    ⚠️ **Important**: After seeing optimization results, please wait until the message “Calculating optimized violations…” at the bottom of the page is gone before switching to other pages. This ensures accurate KPI data is available.
 
     ### What the optimization does:
     - **Fixes Continuity**: Inserts material trips to connect disconnected bus activities
@@ -2119,7 +2119,7 @@ if show_results:
             backdrop-filter: blur(3px);
             border-left: 4px solid #ffc107;
         ">
-            ⚠️ <strong>Important</strong>: After seeing optimization results, please wait for the "Violation calculation completed" message shown at the bottom of the page before switching to other pages. This ensures accurate KPI data is available.
+            ⚠️ <strong>Important</strong>: After seeing optimization results, please wait until the message “Calculating optimized violations…” at the bottom of the page is gone before switching to other pages. This ensures accurate KPI data is available.
         </div>
     """, unsafe_allow_html=True)
 
@@ -2236,6 +2236,7 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
+
 
 
 
