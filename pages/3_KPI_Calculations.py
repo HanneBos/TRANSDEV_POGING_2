@@ -1,3 +1,4 @@
+## Python code KPI Calculations die in GITHUB stond:
 import streamlit as st
 import base64
 import pandas as pd
@@ -315,6 +316,82 @@ def compute_gantt_df(df: pd.DataFrame, plan_label: str = "Plan",
     tmp["Plan"] = plan_label
     return tmp.reset_index(drop=True)
 
+def compute_basic_violations(df: pd.DataFrame) -> int:
+    """
+    Enhanced violation count for data quality checks
+    """
+    if df is None or df.empty:
+        return 0
+    
+    violations = 0
+    
+    # Check for missing required columns
+    required_cols = ['start time', 'end time', 'bus', 'activity']
+    for col in required_cols:
+        if col not in df.columns:
+            return 0  # Can't check violations without required columns
+    
+    # Check for missing values in critical columns
+    for col in required_cols:
+        violations += df[col].isna().sum()
+    
+    # Check for invalid/empty values
+    for col in required_cols:
+        empty_mask = df[col].astype(str).str.strip().isin(['', 'nan', 'None', 'NaT'])
+        violations += empty_mask.sum()
+    
+    # Check for negative time durations and time consistency
+    try:
+        start_times = pd.to_datetime(df['start time'].astype(str), errors='coerce')
+        end_times = pd.to_datetime(df['end time'].astype(str), errors='coerce')
+        
+        # Handle time-only format
+        if not start_times.isna().all() and start_times.dt.year.min() == 1900:
+            base_date = pd.Timestamp('2020-01-01')
+            start_times = start_times.dt.time.apply(lambda t: pd.Timestamp.combine(base_date, t) if pd.notna(t) else pd.NaT)
+            end_times = end_times.dt.time.apply(lambda t: pd.Timestamp.combine(base_date, t) if pd.notna(t) else pd.NaT)
+        
+        # Check for invalid time parsing
+        violations += start_times.isna().sum()
+        violations += end_times.isna().sum()
+        
+        # Check for negative durations (considering overnight trips)
+        valid_times = start_times.notna() & end_times.notna()
+        if valid_times.any():
+            durations = end_times - start_times
+            # Count as violation if negative and not likely overnight (< -12 hours)
+            negative_mask = (durations < pd.Timedelta(0)) & (durations < pd.Timedelta(hours=-12))
+            violations += negative_mask.sum()
+            
+            # Check for unreasonably long durations (> 24 hours)
+            long_mask = durations > pd.Timedelta(hours=24)
+            violations += long_mask.sum()
+        
+    except Exception as e:
+        # If time parsing completely fails, count as violations
+        violations += len(df)
+    
+    # Check for duplicate rows (exact matches)
+    if len(df) > 1:
+        duplicates = df.duplicated().sum()
+        violations += duplicates
+    
+    # Check for invalid bus IDs (empty or non-alphanumeric)
+    try:
+        invalid_bus = df['bus'].astype(str).str.strip().str.match(r'^$|^nan$|^None$', case=False)
+        violations += invalid_bus.sum()
+    except Exception:
+        pass
+    
+    # Check for invalid activity types (empty)
+    try:
+        invalid_activity = df['activity'].astype(str).str.strip().isin(['', 'nan', 'None', 'NaN'])
+        violations += invalid_activity.sum()
+    except Exception:
+        pass
+    
+    return int(violations)
+
 def compute_efficiency(service_min: int | None, total_min: int | None) -> float | None:
     """
     Percentage of time that is 'service' time.
@@ -371,8 +448,11 @@ with st.expander("**How to use the KPI Calculations tool**"):
     1. **Run the Optimized Busplan Generator first**:  
        This page depends on data stored from the Optimized Busplan Generator.  
        If you haven't uploaded and generated an optimized busplan yet, the KPIs here will display as **N/A**.
-    2. **Return to this page**: After generating your optimized plan, navigate here to explore and compare key performance metrics.
-    3. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
+    2. **Wait for violation calculation to complete**: After optimization results appear, wait for the "Violation calculation completed" message on the Optimized Busplan Generator page before switching here.
+    3. **Return to this page**: After generating your optimized plan and waiting for all calculations to complete, navigate here to explore and compare key performance metrics.
+    4. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
+    
+    ⚠️ **Important**: If you see "N/A" for optimized violations or other KPIs, reset the Optimized Busplan Generator page, re-upload your file, and wait ~30 seconds after seeing the results before switching pages.
 
     ### What you'll see:
     - **KPI Overview**: Comparison of Original vs Optimized plans for key metrics such as:  
@@ -405,17 +485,68 @@ opt_df = st.session_state.get('optimized_df', None)
 orig_kpis = compute_kpis(orig_df)
 opt_kpis = compute_kpis(opt_df)
 
+# Compute violations for original data (basic checks)
+orig_violations = compute_basic_violations(orig_df)
+
 st.session_state['kpi_material_trips_original'] = orig_kpis['material_trips']
 st.session_state['kpi_idle_time_original'] = orig_kpis['idle_minutes']
 st.session_state['kpi_buses_used_original'] = orig_kpis['buses']
 st.session_state['kpi_energy_consumed_original'] = orig_kpis['energy_consumed_kwh']
 st.session_state['kpi_service_minutes_original'] = orig_kpis['service_minutes']
+st.session_state['amount_violations'] = orig_violations
 
 st.session_state['kpi_material_trips_optimized'] = opt_kpis['material_trips']
 st.session_state['kpi_idle_time_optimized'] = opt_kpis['idle_minutes']
 st.session_state['kpi_buses_used_optimized'] = opt_kpis['buses']
 st.session_state['kpi_energy_consumed_optimized'] = opt_kpis['energy_consumed_kwh']
 st.session_state['kpi_service_minutes_optimized'] = opt_kpis['service_minutes']
+
+# For consistency, always use the same violations methodology for both
+# If we have optimized violations from the real optimizer, also try to get original violations from feasibility checker
+if 'amount_violations_optimized' in st.session_state and st.session_state['amount_violations_optimized'] > 0:
+    # We have real violations from optimizer, check if we have original violations from feasibility checker
+    feasibility_result = st.session_state.get('feasibility_result', {})
+    if feasibility_result and 'violations' in feasibility_result:
+        violations_df = feasibility_result['violations']
+        if hasattr(violations_df, '__len__'):
+            # Override the basic count with real violations count
+            st.session_state['amount_violations'] = len(violations_df)
+            orig_violations = len(violations_df)
+    else:
+        # No feasibility result available, keep basic violations for original
+        pass
+else:
+    # Check if violations are still being calculated on the optimization page
+    if not st.session_state.get('violations_calculated', False) and opt_df is not None:
+        st.info("""
+        ⏳ **Violation calculation in progress...**
+        
+        Please return to the Optimized Busplan Generator page and wait for the violation calculation to complete 
+        before viewing accurate KPI data. This ensures the most precise violation counts are displayed.
+        """)
+        st.session_state['amount_violations_optimized'] = None  # Mark as pending
+    else:
+        # No optimized violations from real optimizer, use basic method for both
+        opt_violations = compute_basic_violations(opt_df)
+        st.session_state['amount_violations_optimized'] = opt_violations
+
+# Check for suspicious violations pattern
+orig_viols = st.session_state.get('amount_violations', 0)
+opt_viols = st.session_state.get('amount_violations_optimized', 0)
+
+if orig_viols is not None and opt_viols is not None and opt_viols > orig_viols and opt_viols > 10:
+    st.warning(f"""
+    ⚠️ **Unusual violations pattern detected**: 
+    - Original: {orig_viols} violations
+    - Optimized: {opt_viols} violations
+    
+    Typically, optimization should reduce violations. This might indicate:
+    - Different violation checking methods are being used
+    - The optimization process needs adjustment
+    - The original data wasn't properly checked with the full feasibility checker
+    """)
+
+
 
 orig_eff = compute_efficiency(orig_kpis['service_minutes'], orig_kpis['total_minutes'])
 opt_eff = compute_efficiency(opt_kpis['service_minutes'], opt_kpis['total_minutes'])
@@ -450,7 +581,9 @@ kpi_rows = [
     ("Unique buses", fmt_val(orig_kpis['buses']), fmt_val(opt_kpis['buses'])),
     ("Total energy consumed (kWh)", fmt_val(orig_kpis['energy_consumed_kwh']), fmt_val(opt_kpis['energy_consumed_kwh'])),
     ("Service time (%)", fmt_val(orig_eff, "%"), fmt_val(opt_eff, "%")),
-    ("Violations found", fmt_val(st.session_state.get('amount_violations_original', None)), fmt_val(st.session_state.get('amount_violations_optimized', None))),
+    ("Violations found", 
+     fmt_val(st.session_state.get('amount_violations', None)), 
+     fmt_val(st.session_state.get('amount_violations_optimized', None)) if st.session_state.get('amount_violations_optimized') is not None else "Calculating..."),
 ]
 
 for label, left, right in kpi_rows:
@@ -688,3 +821,4 @@ else:
     )
 
     st.altair_chart(chart_hourly, use_container_width=True)
+
