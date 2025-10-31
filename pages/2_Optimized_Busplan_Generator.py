@@ -2115,7 +2115,7 @@ if show_results:
             margin: 15px 0;
             text-align: center;
             font-size: 1.1em;
-            color: #b8860b;
+            color: #8b6914;
             backdrop-filter: blur(3px);
             border-left: 4px solid #ffc107;
         ">
@@ -2236,4 +2236,5 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
+
 
