@@ -1,4 +1,3 @@
-## Python code Optimized busplan generator page die in GITHUB stond:
 import streamlit as st
 import base64
 import pandas as pd
@@ -1899,8 +1898,6 @@ with st.expander("**How to use the optimization tool**"):
     - **Suggestions**: Recommended improvements and optimization opportunities  
     - **Added Rows**: New activities inserted during optimization (charging sessions, material trips)
     - **Removed Rows**: Original activities that were modified or replaced during optimization
-                
-    ⚠️ **Important**: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
     
     ### What the optimization does:
     - **Fixes Continuity**: Inserts material trips to connect disconnected bus activities
@@ -2145,23 +2142,6 @@ if show_results:
         file_name=filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    
-    # Show important warning about waiting for violation calculation
-    st.markdown("""
-        <div style="
-            background-color: rgba(255, 193, 7, 0.15);
-            border-radius: 6px;
-            padding: 15px;
-            margin: 15px 0;
-            text-align: center;
-            font-size: 1.1em;
-            color: #856404;
-            backdrop-filter: blur(3px);
-            border-left: 4px solid #ffc107;
-        ">
-            ⚠️ <strong>Important</strong>: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
-        </div>
-    """, unsafe_allow_html=True)
                 
     # Show SoC summary if available
     try:
@@ -2189,9 +2169,9 @@ if show_results:
         # Show optimization results summary
         violations_df = result.get("violations", pd.DataFrame())
         suggestions_df = result.get("suggestions", pd.DataFrame())
-        
-        # Store violations count in session_state for KPI page
-        st.session_state['amount_violations_optimized'] = len(violations_df) if not violations_df.empty else 0
+
+        # Original violations (after optimization)
+        st.session_state['amount_violations_original'] = len(violations_df) if not violations_df.empty else 0     
         
         if not violations_df.empty:
             st.markdown(f"### Violations <span style='font-size:0.8em; color:#555;'>({len(violations_df)} found)</span>", unsafe_allow_html=True)
@@ -2219,6 +2199,17 @@ if show_results:
             st.markdown(f"### Removed rows <span style='font-size:0.8em; color:#555;'>({len(removed_rows)} during final validation)</span>", unsafe_allow_html=True)
             with st.expander("**View removed rows**", expanded = False):
                 st.dataframe(removed_rows)
+
+    viol_placeholder = st.empty()
+
+    with st.spinner("Calculating optimized violations..."):
+        result_opt = run_checker_and_optimizer(optimized_df, pd.DataFrame(), pd.DataFrame())
+        st.session_state['amount_violations_optimized'] = len(result_opt['violations']) if not result_opt['violations'].empty else 0
+
+    viol_placeholder.markdown(
+    f"### Optimized Violations <span style='font-size:0.8em; color:#555;'>({st.session_state['amount_violations_optimized']} found)</span>",
+    unsafe_allow_html=True
+    )
 
 # Footer
 st.markdown("---")
