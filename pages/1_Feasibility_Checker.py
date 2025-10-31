@@ -861,7 +861,7 @@ if show_results:
                 color: #155724;
                 backdrop-filter: blur(3px);
             ">
-                Feasible: YES (no violations)
+                **Feasible: YES (no violations)**
             </div>
         """, unsafe_allow_html=True)
     else:
@@ -876,7 +876,7 @@ if show_results:
                 color: #721c24;
                 backdrop-filter: blur(3px);
             ">
-                Feasible: NO (see violations below)
+                **Feasible: NO (see violations below)**
             </div>
         """, unsafe_allow_html=True)
 
@@ -988,3 +988,4 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Feasibility Analysis Tool - Ensuring Operational Excellence</div>',
     unsafe_allow_html=True
 )
+
