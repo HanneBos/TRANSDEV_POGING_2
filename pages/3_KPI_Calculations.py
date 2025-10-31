@@ -374,7 +374,7 @@ with st.expander("**How to use the KPI Calculations tool**"):
         2. **Return to this page**: After generating your optimized plan, navigate here to explore and compare key performance metrics.
         3. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
 
-        ### What you'll see:
+        ### What you will see:
         - **KPI Overview**: Comparison of Original vs Optimized plans for key metrics such as:  
             - **Material Trips**  
             - **Idle Time**  
@@ -382,8 +382,7 @@ with st.expander("**How to use the KPI Calculations tool**"):
             - **Total Energy Consumed (kWh)**  
             - **Service Time (%)**  
             - **Violations Found**
-        - **Busplan Summary**: Compact tables summarizing both the Original and Optimized schedules for quick reference.
-        - **Visual Insights**: Graphs showing cumulative energy consumption and service time percentages over time.
+        - **Visual Insights**: Gantt chart comparison between the original bus plan and the optimized bus plan, and graphs showing the cumulative energy consumption and service time percentages over time.
 
 
         ### What the KPIs represent:
@@ -690,5 +689,6 @@ else:
     )
 
     st.altair_chart(chart_hourly, use_container_width=True)
+
 
 
