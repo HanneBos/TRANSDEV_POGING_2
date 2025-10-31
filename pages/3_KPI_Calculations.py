@@ -448,11 +448,8 @@ with st.expander("**How to use the KPI Calculations tool**"):
     1. **Run the Optimized Busplan Generator first**:  
        This page depends on data stored from the Optimized Busplan Generator.  
        If you haven't uploaded and generated an optimized busplan yet, the KPIs here will display as **N/A**.
-    2. **Wait for violation calculation to complete**: After optimization results appear, wait for the "Violation calculation completed" message on the Optimized Busplan Generator page before switching here.
-    3. **Return to this page**: After generating your optimized plan and waiting for all calculations to complete, navigate here to explore and compare key performance metrics.
-    4. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
-    
-    ⚠️ **Important**: If you see "N/A" for optimized violations or other KPIs, reset the Optimized Busplan Generator page, re-upload your file, and wait ~30 seconds after seeing the results before switching pages.
+    2. **Return to this page**: After generating your optimized plan, navigate here to explore and compare key performance metrics.
+    3. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
 
     ### What you'll see:
     - **KPI Overview**: Comparison of Original vs Optimized plans for key metrics such as:  
@@ -516,19 +513,9 @@ if 'amount_violations_optimized' in st.session_state and st.session_state['amoun
         # No feasibility result available, keep basic violations for original
         pass
 else:
-    # Check if violations are still being calculated on the optimization page
-    if not st.session_state.get('violations_calculated', False) and opt_df is not None:
-        st.info("""
-        ⏳ **Violation calculation in progress...**
-        
-        Please return to the Optimized Busplan Generator page and wait for the violation calculation to complete 
-        before viewing accurate KPI data. This ensures the most precise violation counts are displayed.
-        """)
-        st.session_state['amount_violations_optimized'] = None  # Mark as pending
-    else:
-        # No optimized violations from real optimizer, use basic method for both
-        opt_violations = compute_basic_violations(opt_df)
-        st.session_state['amount_violations_optimized'] = opt_violations
+    # No optimized violations from real optimizer, use basic method for both
+    opt_violations = compute_basic_violations(opt_df)
+    st.session_state['amount_violations_optimized'] = opt_violations
 
 # Check for suspicious violations pattern
 orig_viols = st.session_state.get('amount_violations', 0)
@@ -581,9 +568,7 @@ kpi_rows = [
     ("Unique buses", fmt_val(orig_kpis['buses']), fmt_val(opt_kpis['buses'])),
     ("Total energy consumed (kWh)", fmt_val(orig_kpis['energy_consumed_kwh']), fmt_val(opt_kpis['energy_consumed_kwh'])),
     ("Service time (%)", fmt_val(orig_eff, "%"), fmt_val(opt_eff, "%")),
-    ("Violations found", 
-     fmt_val(st.session_state.get('amount_violations', None)), 
-     fmt_val(st.session_state.get('amount_violations_optimized', None)) if st.session_state.get('amount_violations_optimized') is not None else "Calculating..."),
+    ("Violations found", fmt_val(st.session_state.get('amount_violations', None)), fmt_val(st.session_state.get('amount_violations_optimized', None))),
 ]
 
 for label, left, right in kpi_rows:
