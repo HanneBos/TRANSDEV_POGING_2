@@ -2106,6 +2106,23 @@ if show_results:
     # Save optimized dataframe to session_state for KPI page (maintain compatibility)
     st.session_state['optimized_df'] = optimized_df.copy()
 
+    # Show important warning about waiting for violation calculation
+    st.markdown("""
+        <div style="
+            background-color: rgba(255, 193, 7, 0.15);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 1.1em;
+            color: #856404;
+            backdrop-filter: blur(3px);
+            border-left: 4px solid #ffc107;
+        ">
+            ⚠️ <strong>Important</strong>: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
+        </div>
+    """, unsafe_allow_html=True)
+
     # Show results summary
     col1, col2 = st.columns(2)
     with col1:
@@ -2219,4 +2236,3 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
-
