@@ -1,3 +1,4 @@
+## Python code Optimized busplan generator page die in GITHUB stond:
 import streamlit as st
 import base64
 import pandas as pd
@@ -1886,9 +1887,12 @@ with st.expander("**How to use the optimization tool**"):
     1. **Upload Files**: Upload your Bus Planning Excel file and optionally Distance Matrix & Timetable files
     2. **Review Preview**: Check the data preview to ensure your files loaded correctly
     3. **Generate**: Click "Generate Optimized Busplan" to start the optimization process
-    4. **View Results**: Once complete, review the optimization results and metrics
-    5. **Download**: Download your optimized busplan Excel file
-    6. **Reset**: Use "Reset Page" button to start over with new files
+    4. **Wait for Completion**: After optimization results appear, wait for violation calculation to complete
+    5. **View Results**: Once complete, review the optimization results and metrics
+    6. **Download**: Download your optimized busplan Excel file
+    7. **Reset**: Use "Reset Page" button to start over with new files
+    
+    ⚠️ **Important**: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
     
     ### What you'll see after optimization:
     - **Metrics Overview**: Original vs Optimized plan row counts, Minimum SoC, SoC Floor (30.0 kWh), and SoC Breaches
@@ -1943,7 +1947,8 @@ with reset_col2:
     """, unsafe_allow_html=True)
     if st.button("**Reset Page**", type="secondary", help="Clear all uploaded files and results"):
         # Clear session state for this page
-        for key in ['optimization_result', 'optimization_files_uploaded']:
+        for key in ['optimization_result', 'optimization_files_uploaded', 'violations_calculated', 
+                    'amount_violations_optimized', 'original_df', 'optimized_df']:
             if key in st.session_state:
                 del st.session_state[key]
         st.rerun()
@@ -2169,9 +2174,136 @@ if show_results:
         # Show optimization results summary
         violations_df = result.get("violations", pd.DataFrame())
         suggestions_df = result.get("suggestions", pd.DataFrame())
-
-        # Original violations (after optimization)
-        st.session_state['amount_violations_original'] = len(violations_df) if not violations_df.empty else 0     
+        
+        # Store violations count in session_state for KPI page
+        st.session_state['amount_violations_optimized'] = len(violations_df) if not violations_df.empty else 0
+        
+        # Add a progress indicator for final validation checks if violations are being calculated
+        violations_placeholder = st.empty()
+        
+        # Check if we need to calculate violations (only if not already calculated and no violations from optimizer)
+        needs_calculation = (len(violations_df) == 0 and 
+                           not st.session_state.get('violations_calculated', False) and
+                           st.session_state.get('amount_violations_optimized', None) is None)
+        
+        if needs_calculation:
+            with violations_placeholder:
+                st.markdown("""
+                    <div style="
+                        background-color: rgba(255, 193, 7, 0.15);
+                        border-radius: 6px;
+                        padding: 15px;
+                        margin: 15px 0;
+                        text-align: center;
+                        font-size: 1.1em;
+                        color: #856404;
+                        backdrop-filter: blur(3px);
+                        border-left: 4px solid #ffc107;
+                    ">
+                        🔄 <strong>Calculating optimized violations...</strong><br>
+                        Please wait a moment before switching to other pages.<br>
+                        <small>This ensures accurate violation counts are available on the KPI page.</small>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # Define the compute_basic_violations function inline for this calculation
+            def compute_basic_violations_inline(df):
+                if df is None or df.empty:
+                    return 0
+                
+                violations = 0
+                required_cols = ['start time', 'end time', 'bus', 'activity']
+                
+                # Check for missing required columns
+                for col in required_cols:
+                    if col not in df.columns:
+                        return 0
+                
+                # Check for missing values in critical columns
+                for col in required_cols:
+                    violations += df[col].isna().sum()
+                
+                # Check for invalid/empty values
+                for col in required_cols:
+                    empty_mask = df[col].astype(str).str.strip().isin(['', 'nan', 'None', 'NaT'])
+                    violations += empty_mask.sum()
+                
+                # Check for negative time durations and time consistency
+                try:
+                    start_times = pd.to_datetime(df['start time'].astype(str), errors='coerce')
+                    end_times = pd.to_datetime(df['end time'].astype(str), errors='coerce')
+                    
+                    # Handle time-only format
+                    if not start_times.isna().all() and start_times.dt.year.min() == 1900:
+                        base_date = pd.Timestamp('2020-01-01')
+                        start_times = start_times.dt.time.apply(lambda t: pd.Timestamp.combine(base_date, t) if pd.notna(t) else pd.NaT)
+                        end_times = end_times.dt.time.apply(lambda t: pd.Timestamp.combine(base_date, t) if pd.notna(t) else pd.NaT)
+                    
+                    # Check for invalid time parsing
+                    violations += start_times.isna().sum()
+                    violations += end_times.isna().sum()
+                    
+                    # Check for negative durations (considering overnight trips)
+                    valid_times = start_times.notna() & end_times.notna()
+                    if valid_times.any():
+                        durations = end_times - start_times
+                        negative_mask = (durations < pd.Timedelta(0)) & (durations < pd.Timedelta(hours=-12))
+                        violations += negative_mask.sum()
+                        long_mask = durations > pd.Timedelta(hours=24)
+                        violations += long_mask.sum()
+                
+                except Exception:
+                    violations += len(df)
+                
+                # Check for duplicate rows
+                if len(df) > 1:
+                    duplicates = df.duplicated().sum()
+                    violations += duplicates
+                
+                return int(violations)
+            
+            # Calculate violations for optimized data
+            try:
+                calculated_violations = compute_basic_violations_inline(optimized_df)
+                st.session_state['amount_violations_optimized'] = calculated_violations
+                st.session_state['violations_calculated'] = True
+                
+                # Clear the loading message and show completion
+                violations_placeholder.markdown(f"""
+                    <div style="
+                        background-color: rgba(40, 167, 69, 0.15);
+                        border-radius: 6px;
+                        padding: 10px;
+                        margin: 10px 0;
+                        text-align: center;
+                        font-size: 1.1em;
+                        color: #155724;
+                        backdrop-filter: blur(3px);
+                        border-left: 4px solid #28a745;
+                    ">
+                        ✅ <strong>Violation calculation completed!</strong><br>
+                        Found {calculated_violations} violations. You can now safely switch to the KPI page.
+                    </div>
+                """, unsafe_allow_html=True)
+                
+            except Exception as e:
+                violations_placeholder.markdown(f"""
+                    <div style="
+                        background-color: rgba(220, 53, 69, 0.15);
+                        border-radius: 6px;
+                        padding: 10px;
+                        margin: 10px 0;
+                        text-align: center;
+                        font-size: 1.0em;
+                        color: #721c24;
+                        backdrop-filter: blur(3px);
+                    ">
+                        ⚠️ Error calculating violations: {str(e)}
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            # Violations already calculated or available from optimizer
+            st.session_state['violations_calculated'] = True
         
         if not violations_df.empty:
             st.markdown(f"### Violations <span style='font-size:0.8em; color:#555;'>({len(violations_df)} found)</span>", unsafe_allow_html=True)
@@ -2199,17 +2331,6 @@ if show_results:
             st.markdown(f"### Removed rows <span style='font-size:0.8em; color:#555;'>({len(removed_rows)} during final validation)</span>", unsafe_allow_html=True)
             with st.expander("**View removed rows**", expanded = False):
                 st.dataframe(removed_rows)
-
-    viol_placeholder = st.empty()
-
-    with st.spinner("Calculating optimized violations..."):
-        result_opt = run_checker_and_optimizer(optimized_df, pd.DataFrame(), pd.DataFrame())
-        st.session_state['amount_violations_optimized'] = len(result_opt['violations']) if not result_opt['violations'].empty else 0
-
-    viol_placeholder.markdown(
-    f"### Optimized Violations <span style='font-size:0.8em; color:#555;'>({st.session_state['amount_violations_optimized']} found)</span>",
-    unsafe_allow_html=True
-    )
 
 # Footer
 st.markdown("---")
