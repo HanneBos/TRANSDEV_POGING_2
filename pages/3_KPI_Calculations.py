@@ -339,13 +339,13 @@ st.markdown("""
         white-space: nowrap;
         font-size: 3em;
         font-weight: bold;
-        text-align: left;
+        text-align: center;
         display: block;
         margin: 0 auto;
         color: #31333f;
     }
     .subtitle {
-        text-align: left;
+        text-align: center;
         font-size: 1.2em;
         color: #4a4a4a;
         margin-top: 0.5em;
@@ -360,7 +360,7 @@ st.markdown("""
         margin-top: 5px !important;
     }
     </style>
-    <div class='nowrap-title'>KPI's</div>
+    <div class='nowrap-title'>KPI Calculations</div>
     <div class='subtitle'>KPI's are computed from session data. Upload & optimize a plan first if values show N/A.</div>
 """, unsafe_allow_html=True)
 
@@ -690,4 +690,5 @@ else:
     )
 
     st.altair_chart(chart_hourly, use_container_width=True)
+
 
