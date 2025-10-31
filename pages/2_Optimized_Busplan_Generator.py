@@ -2169,9 +2169,9 @@ if show_results:
         # Show optimization results summary
         violations_df = result.get("violations", pd.DataFrame())
         suggestions_df = result.get("suggestions", pd.DataFrame())
-        
-        # Store violations count in session_state for KPI page
-        st.session_state['amount_violations_optimized'] = len(violations_df) if not violations_df.empty else 0
+
+        # Original violations (after optimization)
+        st.session_state['amount_violations_original'] = len(violations_df) if not violations_df.empty else 0     
         
         if not violations_df.empty:
             st.markdown(f"### Violations <span style='font-size:0.8em; color:#555;'>({len(violations_df)} found)</span>", unsafe_allow_html=True)
@@ -2199,6 +2199,17 @@ if show_results:
             st.markdown(f"### Removed rows <span style='font-size:0.8em; color:#555;'>({len(removed_rows)} during final validation)</span>", unsafe_allow_html=True)
             with st.expander("**View removed rows**", expanded = False):
                 st.dataframe(removed_rows)
+
+    viol_placeholder = st.empty()
+
+    with st.spinner("Calculating optimized violations..."):
+        result_opt = run_checker_and_optimizer(optimized_df, pd.DataFrame(), pd.DataFrame())
+        st.session_state['amount_violations_optimized'] = len(result_opt['violations']) if not result_opt['violations'].empty else 0
+
+    viol_placeholder.markdown(
+    f"### Optimized Violations <span style='font-size:0.8em; color:#555;'>({st.session_state['amount_violations_optimized']} found)</span>",
+    unsafe_allow_html=True
+    )
 
 # Footer
 st.markdown("---")
