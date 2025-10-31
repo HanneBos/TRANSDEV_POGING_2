@@ -365,38 +365,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.expander("**How to use the KPI Calculations tool**"):
-    st.markdown("""
-    ### How to use:
+        st.markdown("""
+        ### How to use:
 
-    1. **Run the Optimized Busplan Generator first**:  
-       This page depends on data stored from the Optimized Busplan Generator.  
-       If you haven't uploaded and generated an optimized busplan yet, the KPIs here will display as **N/A**.
-    2. **Return to this page**: After generating your optimized plan, navigate here to explore and compare key performance metrics.
-    3. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
+        1. **Run the Optimized Busplan Generator first**:  
+             This page depends on data stored from the Optimized Busplan Generator.  
+             If you haven't uploaded and generated an optimized busplan yet, the KPIs here will display as **N/A**.
+        2. **Return to this page**: After generating your optimized plan, navigate here to explore and compare key performance metrics.
+        3. **Review KPIs**: View side-by-side comparisons between the **Original** and **Optimized** busplans.
 
-    ### What you'll see:
-    - **KPI Overview**: Comparison of Original vs Optimized plans for key metrics such as:  
-      - **Material Trips**  
-      - **Idle Time**  
-      - **Unique Buses**  
-      - **Total Energy Consumed (kWh)**  
-      - **Service Time (%)**  
-      - **Violations Found**
-    - **Busplan Summary**: Compact tables summarizing both the Original and Optimized schedules for quick reference.
-    - **Visual Insights**: Graphs showing cumulative energy consumption and service time percentages over time.
+        ### What you'll see:
+        - **KPI Overview**: Comparison of Original vs Optimized plans for key metrics such as:  
+            - **Material Trips**  
+            - **Idle Time**  
+            - **Unique Buses**  
+            - **Total Energy Consumed (kWh)**  
+            - **Service Time (%)**  
+            - **Violations Found**
+        - **Busplan Summary**: Compact tables summarizing both the Original and Optimized schedules for quick reference.
+        - **Visual Insights**: Graphs showing cumulative energy consumption and service time percentages over time.
 
 
-    ### What the KPIs represent:
-    - **Material Trips**: Trips where the bus runs without passengers.
-    - **Idle Time**: Total idle duration across all buses.  
-    - **Unique Buses**: Total number of distinct buses used in the plan.  
-    - **Total Energy Consumed (kWh)**: Combined energy use during operations.  
-    - **Service Time (%)**: Percentage of total schedule time where the bus is carrying passengers. 
-    - **Violations Found**: Total issues detected in the plan
+        ### What the KPIs represent:
+        - **Material Trips**: Trips where the bus runs without passengers.
+        - **Idle Time**: Total idle duration across all buses.  
+        - **Unique Buses**: Total number of distinct buses used in the plan.  
+        - **Total Energy Consumed (kWh)**: Combined energy use during operations.  
+        - **Service Time (%)**: Percentage of total schedule time where the bus is carrying passengers. 
+        - **Violations Found**: Total issues detected in the plan
 
-    ### Interpreting Results:
-    - Use these KPIs to evaluate overall operational performance and the effectiveness of the optimization process.
-    """)
+        ### Interpreting Results:
+        - **Lower is better:** Material trips, idle time, energy consumption, violations found
+        - **Higher is better:** Service time percentage
+        - **Depends on needs:** Number of unique buses (fewer = more efficient, but may impact service)
+        """)
 
 
 orig_df = st.session_state.get('original_df', None)
@@ -688,3 +690,4 @@ else:
     )
 
     st.altair_chart(chart_hourly, use_container_width=True)
+
