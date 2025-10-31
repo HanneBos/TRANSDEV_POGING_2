@@ -1899,7 +1899,7 @@ with st.expander("**How to use the optimization tool**"):
     - **Station Optimization**: Upgrades station idle periods into garage charging loops when beneficial
     - **Data Validation**: Corrects timing issues, energy calculations, and activity classifications
     
-    ### What you'll see after optimization:
+    ### What you will see after optimization:
     - **Metrics Overview**: Original vs Optimized plan row counts, Minimum SoC, SoC Floor (30.0 kWh), and SoC Breaches
     - **Optimized Busplan**: Complete optimized schedule in an expandable table view
     - **Download Button**: Get your optimized busplan as an Excel file with timestamp
@@ -2236,6 +2236,7 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
+
 
 
 
