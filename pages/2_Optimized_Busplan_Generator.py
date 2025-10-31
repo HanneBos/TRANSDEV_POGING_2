@@ -1889,6 +1889,15 @@ with st.expander("**How to use the optimization tool**"):
     4. **View Results**: Once complete, review the optimization results and metrics
     5. **Download**: Download your optimized busplan Excel file
     6. **Reset**: Use "Reset Page" button to start over with new files
+
+    ⚠️ **Important**: After seeing optimization results, please wait for the "Violation calculation completed" message before switching to other pages. This ensures accurate KPI data is available.
+
+    ### What the optimization does:
+    - **Fixes Continuity**: Inserts material trips to connect disconnected bus activities
+    - **Smart Charging**: Converts garage idle time into efficient charging sessions (≥15 min)
+    - **Energy Management**: Ensures battery levels stay above 30 kWh throughout the day
+    - **Station Optimization**: Upgrades station idle periods into garage charging loops when beneficial
+    - **Data Validation**: Corrects timing issues, energy calculations, and activity classifications
     
     ### What you'll see after optimization:
     - **Metrics Overview**: Original vs Optimized plan row counts, Minimum SoC, SoC Floor (30.0 kWh), and SoC Breaches
@@ -1898,13 +1907,6 @@ with st.expander("**How to use the optimization tool**"):
     - **Suggestions**: Recommended improvements and optimization opportunities  
     - **Added Rows**: New activities inserted during optimization (charging sessions, material trips)
     - **Removed Rows**: Original activities that were modified or replaced during optimization
-    
-    ### What the optimization does:
-    - **Fixes Continuity**: Inserts material trips to connect disconnected bus activities
-    - **Smart Charging**: Converts garage idle time into efficient charging sessions (≥15 min)
-    - **Energy Management**: Ensures battery levels stay above 30 kWh throughout the day
-    - **Station Optimization**: Upgrades station idle periods into garage charging loops when beneficial
-    - **Data Validation**: Corrects timing issues, energy calculations, and activity classifications
     
     ### File Requirements:
     **(Validated) Bus Planning file** should contain columns for:
@@ -2217,3 +2219,4 @@ st.markdown(
     '<div style="text-align:center; color:#666; font-size:0.9em;">Transdev Optimization Tool - Powered by Advanced Bus Planning Algorithms</div>',
     unsafe_allow_html=True
 )
+
